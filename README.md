@@ -87,7 +87,13 @@ de huecos libres. Cambiarlo ahí lo cambia todo a la vez.
    alternativo, su etiqueta y sus dimensiones reales.
 
 La retícula se adapta sola: las plazas (tamaño, desnivel, giro y color de
-sombra) se recorren en ciclo, así que da igual cuántas fotos haya.
+sombra) se recorren en ciclo, así que da igual cuántas fotos haya. Los anchos
+suman 12 de dos en dos (7+5 y 5+7), de modo que con un número par no queda
+ningún hueco suelto al final de una fila.
+
+Antes de añadir una foto, comprueba que no sea otra toma del mismo momento: el
+material de partida traía varias con distinto encuadre que, recortadas a 3:4,
+quedaban idénticas en pantalla.
 
 El texto alternativo importa: describe el corte, no pongas «foto de barbería».
 

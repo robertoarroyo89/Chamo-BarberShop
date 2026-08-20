@@ -92,7 +92,7 @@ export async function Team() {
         <div className="lg:col-span-5">
           <Reveal y={26} delay={0.12}>
             <PhotoFrame
-              photo={business.shopPhotos.thumbsUp}
+              photo={business.shopPhotos.working}
               tone="yellow"
               tilt={2}
               ratio="square"

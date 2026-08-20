@@ -71,12 +71,12 @@ export function Manifesto() {
         <div className="lg:col-span-5 lg:pt-24">
           <Reveal y={26} delay={0.1}>
             <PhotoFrame
-              photo={business.shopPhotos.working}
+              photo={business.shopPhotos.portrait}
               tone="blue"
               tilt={-2}
               ratio="portrait"
               sizes="(min-width: 1024px) 34vw, (min-width: 640px) 60vw, 88vw"
-              caption="Dentro del local"
+              caption="En la silla"
             />
           </Reveal>
         </div>

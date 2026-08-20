@@ -282,18 +282,18 @@ export const works: Photo[] = [
     width: 1200,
     height: 1600,
   },
-  {
-    id: "fade-bajo",
-    src: "/images/trabajos/fade-bajo-raya.jpg",
-    alt: "Degradado bajo con raya marcada al lado hecho en El Chamo Barber Shop, Burjassot",
-    label: "Fade bajo",
-    width: 1200,
-    height: 1600,
-  },
 ];
 
-/** Fotos del local y del equipo trabajando. */
+/**
+ * Fotos del local y del equipo.
+ *
+ * Una por sección, y distintas entre sí. El material original traía varias
+ * tomas del mismo momento con distinto encuadre —el mismo barbero, el mismo
+ * cliente, el mismo fondo— y al recortarlas a 3:4 acababan idénticas en
+ * pantalla. Se ha dejado solo una de cada escena.
+ */
 export const shopPhotos = {
+  /** Fachada, para el héroe. */
   storefront: {
     id: "fachada",
     src: "/images/local/fachada.jpg",
@@ -301,19 +301,21 @@ export const shopPhotos = {
     width: 1017,
     height: 1013,
   },
+  /** Retrato de barbero, para "quiénes somos". */
+  portrait: {
+    id: "barbero-retrato",
+    src: "/images/local/barbero-retrato.jpg",
+    alt: "Barbero de El Chamo sentado en el sillón del local de Burjassot",
+    width: 900,
+    height: 1831,
+  },
+  /** Barbero en plena faena, para "quién te atiende". */
   working: {
     id: "trabajando",
     src: "/images/local/trabajando.jpg",
-    alt: "Barbero de El Chamo cortando el pelo a un cliente en el local de Burjassot",
+    alt: "Barbero de El Chamo terminando el corte a un cliente en el local de Burjassot",
     width: 1125,
     height: 2266,
-  },
-  thumbsUp: {
-    id: "barbero-trabajando",
-    src: "/images/local/barbero-trabajando.jpg",
-    alt: "Barbero de El Chamo peinando a un cliente en el interior de la barbería",
-    width: 1000,
-    height: 1000,
   },
 } satisfies Record<string, Photo>;
 

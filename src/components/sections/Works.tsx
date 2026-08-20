@@ -14,41 +14,37 @@ import { pad2 } from "@/lib/utils";
  * porque se recorre este ciclo. Cada plaza lleva su tamaño, su desnivel, su
  * giro y el color de su sombra, para que la pared parezca compuesta y no
  * alineada con regla.
+ *
+ * Los anchos suman 12 de dos en dos (7+5 y 5+7), así que con un número par de
+ * fotos no queda ningún hueco suelto al final de una fila.
  */
 const SLOTS = [
-  { span: "col-span-2 lg:col-span-6", offset: "", tilt: -1.5, tone: "blue" },
+  { span: "col-span-2 lg:col-span-7", offset: "", tilt: -1.5, tone: "blue" },
   {
-    span: "col-span-1 lg:col-span-3",
+    span: "col-span-1 lg:col-span-5",
     offset: "lg:mt-16",
     tilt: 2,
     tone: "yellow",
   },
   {
-    span: "col-span-1 lg:col-span-3",
-    offset: "lg:mt-6",
+    span: "col-span-1 lg:col-span-5",
+    offset: "lg:mt-2",
     tilt: -2,
     tone: "red",
   },
   {
-    span: "col-span-1 lg:col-span-4 lg:col-start-2",
-    offset: "",
+    span: "col-span-2 lg:col-span-7",
+    offset: "lg:mt-14",
     tilt: 1.5,
     tone: "yellow",
-  },
-  {
-    span: "col-span-1 lg:col-span-5",
-    offset: "lg:mt-10",
-    tilt: -1,
-    tone: "blue",
   },
 ] as const;
 
 const SLOT_SIZES = [
-  "(min-width: 1024px) 46vw, 92vw",
-  "(min-width: 1024px) 23vw, 46vw",
-  "(min-width: 1024px) 23vw, 46vw",
-  "(min-width: 1024px) 31vw, 46vw",
-  "(min-width: 1024px) 39vw, 46vw",
+  "(min-width: 1024px) 54vw, 92vw",
+  "(min-width: 1024px) 38vw, 46vw",
+  "(min-width: 1024px) 38vw, 46vw",
+  "(min-width: 1024px) 54vw, 92vw",
 ];
 
 export function Works() {
