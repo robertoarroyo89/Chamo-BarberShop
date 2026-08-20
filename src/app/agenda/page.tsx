@@ -36,16 +36,27 @@ interface Appointment {
   notes: string | null;
 }
 
-const BARBER_ACCENT: Record<string, string> = Object.fromEntries(
-  barbers.map((b) => [
-    b.id,
-    b.accent === "blue"
-      ? "bg-blue"
-      : b.accent === "yellow"
-        ? "bg-yellow"
-        : "bg-red",
-  ]),
-);
+/**
+ * Color e iniciales por barbero, tomados de la configuración.
+ *
+ * Las iniciales NO se sacan cortando el nombre: "Andre" y "Antonio" darían las
+ * dos "AN" y en el panel no se distinguiría de quién es la cita.
+ */
+const BARBER_CHIP: Record<string, { accent: string; initials: string }> =
+  Object.fromEntries(
+    barbers.map((b) => [
+      b.id,
+      {
+        accent:
+          b.accent === "blue"
+            ? "bg-blue"
+            : b.accent === "yellow"
+              ? "bg-yellow"
+              : "bg-red",
+        initials: b.initials,
+      },
+    ]),
+  );
 
 /**
  * Citas desde hoy hasta el final del horizonte de reservas.
@@ -198,10 +209,11 @@ export default async function AgendaPage() {
                       aria-hidden="true"
                       className={cn(
                         "keyline font-display text-on-color grid size-8 shrink-0 place-items-center text-xs leading-none",
-                        BARBER_ACCENT[row.barberId] ?? "bg-blue",
+                        BARBER_CHIP[row.barberId]?.accent ?? "bg-blue",
                       )}
                     >
-                      {row.barberName.slice(0, 2).toUpperCase()}
+                      {BARBER_CHIP[row.barberId]?.initials ??
+                        row.barberName.slice(0, 2).toUpperCase()}
                     </span>
 
                     <span className="min-w-40 flex-1">
