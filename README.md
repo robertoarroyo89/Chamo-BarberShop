@@ -207,9 +207,19 @@ Aquí se gestiona la plantilla sin tocar el código:
     larga o un permiso sin fecha de vuelta.
   - _Ya no trabaja aquí_: desaparece de la web y de las reservas, pero sus
     cortes siguen contando en el resumen.
-- **Horario propio** por día de la semana: _Local_ (sigue el horario de la
-  barbería), _Libra_, o _Propio_ con hasta dos tramos. Los dos tramos cubren la
-  jornada partida, y es lo que permite montar los turnos de verano.
+- **Horario propio** por día: _Local_ (sigue el horario de la barbería),
+  _Libra_, o _Propio_ con hasta dos tramos —la jornada partida de siempre—.
+  Detalles del editor que vienen de usarlo:
+  - Las horas se eligen de una lista acotada al horario del local. Un campo de
+    hora libre ofrece las 24 h, y en una barbería que cierra a las 20:00 poder
+    poner las 23:30 solo sirve para equivocarse.
+  - Al pasar un día a _Propio_ se parte del horario del local: casi siempre se
+    trata de recortarlo, no de inventarlo de cero.
+  - **«Copiar a los demás días»** replica ese día en el resto. Montar un turno
+    de verano día por día son siete formularios idénticos.
+  - Los días que el local cierra no se pueden editar: el horario del local manda
+    siempre sobre el del barbero, así que dar controles ahí sería ofrecer algo
+    sin efecto.
 - **Ausencias** con fechas y motivo: vacaciones, baja, un día suelto. Esos días
   no se ofrecen citas con esa persona.
 - **Borrado definitivo** solo si nunca tuvo citas. Si las tuvo, se queda de baja
