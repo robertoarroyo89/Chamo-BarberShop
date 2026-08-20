@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { WhatsAppGlyph } from "@/components/ui/icons";
-import { ANY_BARBER, barbers, business, services } from "@/data/business";
+import { ANY_BARBER, business, services } from "@/data/business";
 import { bookableDates } from "@/lib/booking";
 import type { Slot } from "@/lib/booking";
 import { describeDate, formatTime, longDateLabel } from "@/lib/hours";
@@ -24,12 +24,26 @@ import {
 } from "@/lib/savedAppointment";
 import { cn, formatPrice } from "@/lib/utils";
 
+/** Lo mínimo que necesita el selector para pintar a un barbero. */
+export interface BarberOption {
+  id: string;
+  name: string;
+  initials: string;
+  accent: "blue" | "yellow" | "red";
+}
+
 interface BookingFormProps {
   /**
    * Si el proyecto tiene credenciales de Firebase. Llega ya resuelto desde el
    * servidor, así que no hace falta una petición solo para averiguarlo.
    */
   configured: boolean;
+  /**
+   * Equipo que coge citas, renderizado ya en el servidor para que el selector
+   * aparezca sin esperas. Se refresca con cada consulta de disponibilidad, así
+   * que un alta o una baja hecha desde el panel se refleja al momento.
+   */
+  initialBarbers: BarberOption[];
 }
 
 const ACCENTS = {
@@ -38,16 +52,13 @@ const ACCENTS = {
   red: "bg-red",
 };
 
-/** Opciones del selector de barbero, incluida la de "me da igual". */
-const BARBER_OPTIONS = [
-  {
-    id: ANY_BARBER.id,
-    name: "Cualquiera",
-    initials: "··",
-    accent: "blue" as const,
-  },
-  ...barbers,
-];
+/** Añade la opción "me da igual" al principio de la lista. */
+function withAnyOption(team: BarberOption[]): BarberOption[] {
+  return [
+    { id: ANY_BARBER.id, name: "Cualquiera", initials: "··", accent: "blue" },
+    ...team,
+  ];
+}
 
 /** Archivo de calendario, para llevarse la cita al móvil. */
 function buildCalendarFile(
@@ -94,7 +105,7 @@ function buildCalendarFile(
  *     cambiarla o anularla sin registrarse (ver lib/savedAppointment).
  *   · Sin Firebase configurado no se finge una agenda: se ofrece WhatsApp.
  */
-export function BookingForm({ configured }: BookingFormProps) {
+export function BookingForm({ configured, initialBarbers }: BookingFormProps) {
   const dates = useMemo(() => bookableDates(), []);
 
   const saved = useSyncExternalStore(
@@ -115,6 +126,7 @@ export function BookingForm({ configured }: BookingFormProps) {
    * paso desaparece un fallo real —ver por un instante los huecos del día
    * anterior— porque un resultado viejo nunca puede darse por válido.
    */
+  const [team, setTeam] = useState<BarberOption[]>(initialBarbers);
   const [pick, setPick] = useState<{ date: string; time: string } | null>(null);
   const [result, setResult] = useState<{ date: string; slots: Slot[] } | null>(
     null,
@@ -162,8 +174,11 @@ export function BookingForm({ configured }: BookingFormProps) {
           return data;
         }),
       )
-      .then((data: { slots?: Slot[] }) => {
+      .then((data: { slots?: Slot[]; barbers?: BarberOption[] }) => {
         setResult({ date: target, slots: data.slots ?? [] });
+        // El equipo viene con la disponibilidad: un alta o una baja hecha en el
+        // panel aparece aquí sin recargar la página.
+        if (data.barbers?.length) setTeam(data.barbers);
       })
       .catch((error: Error) => {
         // Cambiar de día aborta la petición anterior: no es un fallo.
@@ -185,12 +200,22 @@ export function BookingForm({ configured }: BookingFormProps) {
     return () => controller.abort();
   }, [configured, date, saved, loadSlots, result?.date, failure?.date]);
 
+  /**
+   * Barbero en firme. Si el elegido ya no está en el equipo —le han dado de
+   * baja mientras se rellenaba el formulario— se vuelve a "Cualquiera" en lugar
+   * de dejar seleccionado a alguien que ya no existe.
+   */
+  const barber =
+    barberId === ANY_BARBER.id || team.some((b) => b.id === barberId)
+      ? barberId
+      : ANY_BARBER.id;
+
   /** Con un barbero concreto, solo se ofrecen las horas en que está libre. */
   const visibleSlots = useMemo(() => {
     if (!slots) return null;
-    if (barberId === ANY_BARBER.id) return slots;
-    return slots.filter((slot) => slot.freeBarberIds.includes(barberId));
-  }, [slots, barberId]);
+    if (barber === ANY_BARBER.id) return slots;
+    return slots.filter((slot) => slot.freeBarberIds.includes(barber));
+  }, [slots, barber]);
 
   /**
    * Hora en firme. Solo vale si es del día elegido Y sigue libre para el
@@ -219,7 +244,7 @@ export function BookingForm({ configured }: BookingFormProps) {
           date,
           time,
           serviceId,
-          barberId,
+          barberId: barber,
           customerName: name,
           customerPhone: phone,
           notes,
@@ -525,12 +550,12 @@ export function BookingForm({ configured }: BookingFormProps) {
             ¿Con quién?
           </Legend>
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {BARBER_OPTIONS.map((option) => (
+            {withAnyOption(team).map((option) => (
               <Choice
                 key={option.id}
                 name="barbero"
                 value={option.id}
-                checked={barberId === option.id}
+                checked={barber === option.id}
                 onChange={setBarberId}
               >
                 <span className="flex items-center gap-2.5">
@@ -627,9 +652,9 @@ export function BookingForm({ configured }: BookingFormProps) {
             ) : visibleSlots.length === 0 ? (
               <p className="text-ink-soft text-sm">
                 Ese día está completo
-                {barberId !== ANY_BARBER.id ? " para ese barbero" : ""}. Prueba
+                {barber !== ANY_BARBER.id ? " para ese barbero" : ""}. Prueba
                 otro día
-                {barberId !== ANY_BARBER.id ? " o elige “Cualquiera”" : ""}.
+                {barber !== ANY_BARBER.id ? " o elige “Cualquiera”" : ""}.
               </p>
             ) : (
               <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-6">

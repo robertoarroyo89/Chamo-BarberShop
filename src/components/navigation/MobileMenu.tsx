@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Phone, X } from "lucide-react";
+import { Lock, MapPin, Phone, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { OpenStatus } from "@/components/ui/OpenStatus";
@@ -154,6 +154,17 @@ export function MobileMenu({ open, onClose, triggerId }: MobileMenuProps) {
             {business.address.postalCode} {business.address.city},{" "}
             {business.address.region}
           </p>
+
+          {/* Acceso del equipo. Aquí abajo y sin destacar: es una herramienta de
+              trabajo, y desde el móvil del mostrador es donde más la usan. */}
+          <a
+            href="/agenda"
+            onClick={onClose}
+            className="text-ink-faint hover:text-ink keyline-t mt-6 flex items-center gap-2 pt-4 text-xs font-semibold transition-colors"
+          >
+            <Lock aria-hidden="true" size={13} />
+            Acceso equipo
+          </a>
         </div>
       </nav>
 

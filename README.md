@@ -10,8 +10,9 @@ interno para el equipo.
   Incluye tema oscuro opcional.
 - **Reservas**: agenda propia sobre Firestore. Cliente elige servicio, barbero,
   día y hora; puede cambiar o anular su cita sin registrarse.
-- **Panel**: `/agenda`, protegido por contraseña, donde el equipo ve las citas
-  con el teléfono del cliente a un toque.
+- **Panel**: `/agenda`, protegido por contraseña. Tres pestañas: **Citas**
+  (agenda del día con el teléfono del cliente a un toque), **Equipo** (altas,
+  bajas, pausas, horario propio y ausencias) y **Resumen** (cifras y gráficos).
 
 ---
 
@@ -67,7 +68,7 @@ Ningún componente repite un teléfono, un precio ni un horario.
 | Teléfono, WhatsApp, Instagram, dirección | `src/data/business.ts` → `business`               |
 | Horario de apertura                      | `src/data/business.ts` → `openingHours`           |
 | Servicios y precios                      | `src/data/business.ts` → `services`               |
-| Barberos                                 | `src/data/business.ts` → `barbers`                |
+| Barberos                                 | Panel `/agenda/equipo` (el archivo solo siembra)  |
 | Opiniones                                | `src/data/business.ts` → `reviews`                |
 | Fotos de trabajos                        | `src/data/business.ts` → `works`                  |
 | Valoración y nº de reseñas               | `src/data/business.ts` → `business.rating`        |
@@ -181,23 +182,87 @@ agenda hay que elegir una de las dos:
 
 ## Panel de la barbería
 
-En `/agenda`. Muestra las citas confirmadas por días, con servicio, barbero,
-nombre del cliente y accesos directos para llamarle, escribirle por WhatsApp o
-anular la cita.
+En `/agenda`. Se entra desde el enlace «Acceso equipo» del pie de la web y del
+menú móvil.
 
 Para activarlo, define `ADMIN_PASSWORD` (mínimo 8 caracteres). Sin esa variable
 el panel se desactiva solo.
 
-Es una contraseña compartida entre tres personas, no un sistema de usuarios: la
-decisión es deliberada. Lo que sí se cuida es que la cookie de sesión sea
-`httpOnly`, esté firmada con HMAC y caduque a las 12 horas, que las
-comparaciones sean en tiempo constante, y que la página no se cachee ni se
-indexe (`robots.txt` la excluye).
+### Citas
 
-Para cambiar la contraseña, cambia la variable y vuelve a despliegar. Las
+La agenda por días, con servicio, barbero, nombre del cliente y accesos
+directos para llamarle, escribirle por WhatsApp o anular la cita. Arriba avisa
+de quién no coge citas hoy, para no llevarse sorpresas en el mostrador.
+
+### Equipo
+
+Aquí se gestiona la plantilla sin tocar el código:
+
+- **Alta**: nombre y dos iniciales. Las iniciales son lo que distingue a cada
+  uno en la agenda, así que no se permiten repetidas — con «Andre» y «Antonio»
+  en plantilla, cortar el nombre daría «AN» a los dos.
+- **Tres estados**:
+  - _Coge citas_: aparece en la web y en el selector de reservas.
+  - _En pausa_: sigue en la web pero no se le pueden pedir citas. Para una baja
+    larga o un permiso sin fecha de vuelta.
+  - _Ya no trabaja aquí_: desaparece de la web y de las reservas, pero sus
+    cortes siguen contando en el resumen.
+- **Horario propio** por día de la semana: _Local_ (sigue el horario de la
+  barbería), _Libra_, o _Propio_ con hasta dos tramos. Los dos tramos cubren la
+  jornada partida, y es lo que permite montar los turnos de verano.
+- **Ausencias** con fechas y motivo: vacaciones, baja, un día suelto. Esos días
+  no se ofrecen citas con esa persona.
+- **Borrado definitivo** solo si nunca tuvo citas. Si las tuvo, se queda de baja
+  para no dejar el historial huérfano ni descuadrar las estadísticas.
+
+Todo esto afecta a la disponibilidad al momento: la web pública se regenera en
+cada cambio (`revalidatePath`) y el selector de barberos del formulario se
+refresca con cada consulta de horas.
+
+El equipo vive en la colección `barberos` de Firestore. La primera vez que se
+abre el panel, se siembra con el equipo de `data/business.ts`; a partir de ahí
+manda la base de datos. Sin Firebase configurado se muestra el equipo del
+archivo y se avisa de que los cambios no se guardan.
+
+### Resumen
+
+Cifras de las últimas ocho semanas y cuatro gráficos: cortes por semana, por
+barbero, servicios más pedidos y a qué horas entra la gente. Más la ocupación de
+los próximos siete días.
+
+Están hechos con CSS, sin librería de gráficos: son barras, y meter 50 kB de
+JavaScript para dibujar rectángulos en un panel que se abre desde el móvil del
+mostrador no se sostiene. Cada gráfico lleva además su tabla de datos para
+lectores de pantalla, y las cifras están siempre escritas.
+
+Dos avisos sobre las métricas, que están también a pie de página en el panel:
+
+- **«Facturado»** es la suma de las tarifas de las citas confirmadas, no una
+  contabilidad: no descuenta anulaciones de última hora ni recoge propinas.
+- **La ocupación se calcula solo hacia delante.** La de meses pasados habría que
+  medirla con la plantilla que había entonces, y el sistema solo conoce la
+  actual: quien entró ayer inflaría semanas de capacidad que nunca existió, y
+  quien está en pausa desaparecería del cálculo pese a haber trabajado. Hacia
+  delante la plantilla actual es la correcta — y además es el dato que sirve:
+  cuánto hueco queda por vender.
+
+### Seguridad
+
+Es una contraseña compartida entre el equipo, no un sistema de usuarios: la
+decisión es deliberada. Lo que sí se cuida:
+
+- La cookie de sesión es `httpOnly`, va firmada con HMAC y caduca a las 12 h.
+- Las comparaciones de contraseña son en tiempo constante.
+- **Todas** las acciones que escriben comprueban la sesión antes de tocar nada.
+  Que el botón solo se pinte estando dentro no es una defensa.
+- Cada página del panel comprueba la sesión por su cuenta, no solo el marco
+  compartido: en React Server Components el código de la página se ejecuta
+  aunque el marco decida no mostrarla, así que un guardián puesto solo arriba
+  dejaría que las consultas a la base de datos se hicieran igualmente.
+- La página no se cachea ni se indexa (`robots.txt` excluye `/agenda`).
+
+Para cambiar la contraseña, cambia la variable y vuelve a desplegar. Las
 sesiones abiertas dejan de valer, porque la firma depende de ella.
-
----
 
 ## Desplegar en Vercel
 
@@ -226,6 +291,10 @@ src/
       layout.tsx        cabecera, atajo de reserva y datos estructurados
       page.tsx          la página
     agenda/             panel interno (fuera del grupo: sin cabecera pública)
+      page.tsx          citas
+      equipo/           gestión de la plantilla
+      resumen/          cifras y gráficos
+      actions.ts        Server Actions del panel
     api/
       disponibilidad/   huecos libres de un día
       reservas/         crear cita  ·  reservas/cancelar/ anular
@@ -233,6 +302,7 @@ src/
     layout.tsx          html, tipografías, script de tema
     opengraph-image.tsx imagen de previsualización, generada al compilar
   components/
+    agenda/             piezas del panel (fichas de barbero, gráficos)
     booking/            formulario de reserva
     navigation/         cabecera y menú móvil
     sections/           las secciones de la página, en orden
@@ -240,6 +310,9 @@ src/
   data/business.ts      FUENTE ÚNICA DE VERDAD
   lib/
     booking.ts          generación y validación de huecos (compartido)
+    team.ts             tipos del equipo y reglas de disponibilidad (puro)
+    barbersStore.ts     colección del equipo en Firestore
+    stats.ts            cálculo de las cifras del resumen
     hours.ts            horarios y fechas en Europe/Madrid
     businessClock.ts    reloj del negocio como almacén externo
     savedAppointment.ts la cita del cliente, en su navegador
@@ -255,6 +328,12 @@ de opiniones, cuadro de horarios, mapa e interruptor de tema.
 ---
 
 ## Decisiones que conviene conocer
+
+**`lib/team` y `lib/barbersStore` están separados a propósito.** El primero
+tiene los tipos y las reglas de disponibilidad y es código puro; el segundo
+accede a Firestore. Si vivieran juntos, el formulario de reserva —que necesita
+esas reglas para filtrar horas— arrastraría todo `firebase-admin` y gRPC al
+paquete del navegador, y la compilación ni terminaría.
 
 **Las horas se calculan siempre en `Europe/Madrid`**, no en la zona del
 visitante. Alguien consultando desde Londres ve el horario real de la barbería.
@@ -300,8 +379,9 @@ Están todos marcados con comentarios en `src/data/business.ts`:
    → `business.yearsExperience`
 3. **Qué cara corresponde a cada barbero.** Hay fotos reales del equipo en
    `public/images/local/`, pero no está confirmado quién es Andre, quién Nacho y
-   quién Antonio. Por eso el selector usa iniciales y no retratos: poner una por
-   otra sería peor que no poner ninguna.
+   quién Antonio. Por eso se usan iniciales y no retratos: poner una por otra
+   sería peor que no poner ninguna. Cuando lo confirméis, se puede añadir una
+   foto por barbero desde el panel.
 4. **Aviso legal y política de privacidad.** La web recoge nombre y teléfono
    para reservar, así que en España hace falta informar del tratamiento de esos
    datos y de quién es el responsable. No se han redactado porque requieren

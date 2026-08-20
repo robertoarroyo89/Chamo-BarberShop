@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { availableSlots, bookableDates } from "@/lib/booking";
+import { getAllBarbers } from "@/lib/barbersStore";
+import { bookableBarbers } from "@/lib/team";
 import { APPOINTMENTS, getDb } from "@/lib/firebaseAdmin";
 import { isValidIsoDate } from "@/lib/hours";
 
@@ -52,10 +54,22 @@ export async function GET(request: Request) {
       taken.add(`${time}__${barberId}`);
     });
 
+    // El equipo se lee en cada consulta: si alguien acaba de coger vacaciones o
+    // de entrar en plantilla, la disponibilidad lo refleja al momento.
+    const team = bookableBarbers(await getAllBarbers());
+
     return NextResponse.json({
       configured: true,
       date,
-      slots: availableSlots(date, taken),
+      slots: availableSlots(date, taken, team),
+      // El selector del formulario se pinta con esta lista, no con una escrita
+      // en el código.
+      barbers: team.map(({ id, name, initials, accent }) => ({
+        id,
+        name,
+        initials,
+        accent,
+      })),
     });
   } catch (error) {
     console.error("[disponibilidad] Fallo al consultar Firestore:", error);

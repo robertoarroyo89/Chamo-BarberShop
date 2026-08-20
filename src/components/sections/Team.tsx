@@ -2,6 +2,8 @@ import { PhotoFrame } from "@/components/ui/PhotoFrame";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { business } from "@/data/business";
+import { getAllBarbers } from "@/lib/barbersStore";
+import { visibleBarbers } from "@/lib/team";
 import { cn, pad2 } from "@/lib/utils";
 
 const ACCENTS = {
@@ -18,7 +20,11 @@ const ACCENTS = {
  * fotos reales de los barberos, pero no está confirmado qué cara corresponde a
  * cada nombre y poner una por otra sería peor que no poner ninguna.
  */
-export function Team() {
+export async function Team() {
+  // El equipo sale de la base de datos, no del código: así un alta o una baja
+  // desde el panel se ve en la web sin volver a desplegar.
+  const team = visibleBarbers(await getAllBarbers());
+
   return (
     <section
       id="equipo"
@@ -36,13 +42,14 @@ export function Team() {
 
           <Reveal y={18} delay={0.1}>
             <p className="text-ink-soft mt-6 max-w-md text-base leading-relaxed">
-              Somos tres. Puedes pedir cita con quien quieras o dejar que te
-              atienda el primero que quede libre.
+              {team.length === 1
+                ? "Aquí no hay rotación: te atiende siempre la misma mano."
+                : `Somos ${team.length}. Puedes pedir cita con quien quieras o dejar que te atienda el primero que quede libre.`}
             </p>
           </Reveal>
 
           <ul className="mt-9 grid gap-4 sm:grid-cols-3">
-            {business.barbers.map((barber, index) => (
+            {team.map((barber, index) => (
               <Reveal
                 as="li"
                 key={barber.id}

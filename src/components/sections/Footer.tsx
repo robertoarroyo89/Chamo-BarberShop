@@ -115,9 +115,19 @@ export function Footer() {
             © {year} {business.name} · Barbería en {business.address.city},{" "}
             {business.address.region}
           </p>
-          <p className="text-ink-faint text-xs">
-            Sin cookies de seguimiento. El mapa se carga solo si lo pides.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p className="text-ink-faint text-xs">
+              Sin cookies de seguimiento. El mapa se carga solo si lo pides.
+            </p>
+            {/* Acceso del equipo al panel interno. Discreto a propósito: es una
+                herramienta de trabajo, no una sección de la web. */}
+            <a
+              href="/agenda"
+              className="text-ink-faint hover:text-ink hover:decoration-ink text-xs font-semibold underline decoration-transparent underline-offset-2 transition-colors"
+            >
+              Acceso equipo
+            </a>
+          </div>
         </div>
       </div>
     </footer>

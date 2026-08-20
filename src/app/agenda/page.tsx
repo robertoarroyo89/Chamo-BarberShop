@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Phone } from "lucide-react";
 import { AgendaLogin } from "./agenda-login";
-import { cancelFromDashboard, logout } from "./actions";
+import { cancelFromDashboard } from "./actions";
+import { NotConfigured, NotConnected, Shell } from "@/components/agenda/Shell";
 import { Button } from "@/components/ui/Button";
 import { WhatsAppGlyph } from "@/components/ui/icons";
-import { barbers, booking, business } from "@/data/business";
-import { hasSession, isAdminConfigured } from "@/lib/adminAuth";
+import { booking } from "@/data/business";
+import { getAllBarbers } from "@/lib/barbersStore";
+import { isAway, type Barber } from "@/lib/team";
 import { APPOINTMENTS, getDb } from "@/lib/firebaseAdmin";
 import {
   addDays,
@@ -13,6 +15,7 @@ import {
   getBusinessToday,
   longDateLabel,
 } from "@/lib/hours";
+import { panelState } from "@/lib/panelGuard";
 import { cn, formatPrice } from "@/lib/utils";
 
 /** Datos de clientes: nunca se cachea ni se indexa. */
@@ -36,27 +39,7 @@ interface Appointment {
   notes: string | null;
 }
 
-/**
- * Color e iniciales por barbero, tomados de la configuración.
- *
- * Las iniciales NO se sacan cortando el nombre: "Andre" y "Antonio" darían las
- * dos "AN" y en el panel no se distinguiría de quién es la cita.
- */
-const BARBER_CHIP: Record<string, { accent: string; initials: string }> =
-  Object.fromEntries(
-    barbers.map((b) => [
-      b.id,
-      {
-        accent:
-          b.accent === "blue"
-            ? "bg-blue"
-            : b.accent === "yellow"
-              ? "bg-yellow"
-              : "bg-red",
-        initials: b.initials,
-      },
-    ]),
-  );
+const FILL = { blue: "bg-blue", yellow: "bg-yellow", red: "bg-red" };
 
 /**
  * Citas desde hoy hasta el final del horizonte de reservas.
@@ -64,7 +47,7 @@ const BARBER_CHIP: Record<string, { accent: string; initials: string }> =
  * La consulta filtra SOLO por fecha y ordena por fecha, que es un caso que
  * Firestore resuelve con su índice automático. El estado y el orden por hora se
  * afinan en memoria a propósito: así el negocio no tiene que crear ningún
- * índice compuesto a mano para que el panel funcione.
+ * índice compuesto a mano.
  */
 async function loadAppointments(): Promise<Appointment[] | null> {
   const db = getDb();
@@ -104,23 +87,18 @@ async function loadAppointments(): Promise<Appointment[] | null> {
 }
 
 export default async function AgendaPage() {
-  if (!isAdminConfigured()) {
+  const state = await panelState();
+
+  if (state === "sin-configurar") {
     return (
-      <Shell>
-        <div className="keyline bg-paper-raised p-6 shadow-hard">
-          <h1 className="text-2xl">Panel no configurado</h1>
-          <p className="text-ink-soft mt-3 text-sm leading-relaxed">
-            Falta la variable <code>ADMIN_PASSWORD</code> (mínimo 8 caracteres).
-            Ver README.md → «Panel de la barbería».
-          </p>
-        </div>
+      <Shell authed={false}>
+        <NotConfigured />
       </Shell>
     );
   }
-
-  if (!(await hasSession())) {
+  if (state === "anonimo") {
     return (
-      <Shell>
+      <Shell authed={false}>
         <div className="mx-auto max-w-sm">
           <AgendaLogin />
         </div>
@@ -128,21 +106,21 @@ export default async function AgendaPage() {
     );
   }
 
-  const appointments = await loadAppointments();
+  const [appointments, team] = await Promise.all([
+    loadAppointments(),
+    getAllBarbers(),
+  ]);
 
   if (appointments === null) {
     return (
-      <Shell>
-        <div className="keyline bg-paper-raised p-6 shadow-hard">
-          <h1 className="text-2xl">Agenda sin conectar</h1>
-          <p className="text-ink-soft mt-3 text-sm leading-relaxed">
-            No hay credenciales de Firebase en este despliegue, así que no hay
-            citas que mostrar. Ver README.md → «Reservas».
-          </p>
-        </div>
+      <Shell authed active="/agenda">
+        <NotConnected />
       </Shell>
     );
   }
+
+  const byId = new Map(team.map((b) => [b.id, b]));
+  const today = getBusinessToday();
 
   // Agrupadas por día, en el orden en que llegan (ya ordenadas).
   const days = new Map<string, Appointment[]>();
@@ -152,28 +130,21 @@ export default async function AgendaPage() {
     days.set(row.date, list);
   }
 
-  const today = getBusinessToday();
-
   return (
-    <Shell>
+    <Shell authed active="/agenda">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="display-poster text-[clamp(2.25rem,7vw,3.5rem)]">
-            Agenda
-          </h1>
+          <h1 className="display-poster text-[clamp(2rem,6vw,3rem)]">Citas</h1>
           <p className="text-ink-soft mt-2 text-sm">
             {appointments.length === 0
               ? "No hay citas pendientes."
               : `${appointments.length} ${appointments.length === 1 ? "cita" : "citas"} de aquí a ${booking.horizonDays} días.`}
           </p>
         </div>
-
-        <form action={logout}>
-          <Button type="submit" tone="paper" size="sm">
-            Salir
-          </Button>
-        </form>
       </div>
+
+      {/* Avisos útiles al abrir: quién está ausente hoy. */}
+      <TodayNotices team={team} today={today} />
 
       {days.size === 0 ? (
         <div className="keyline bg-paper-raised mt-8 p-6">
@@ -196,72 +167,75 @@ export default async function AgendaPage() {
               </h2>
 
               <ul className="keyline-t mt-3">
-                {list.map((row) => (
-                  <li
-                    key={row.id}
-                    className="keyline-b flex flex-wrap items-center gap-x-5 gap-y-3 py-4"
-                  >
-                    <span className="font-display w-16 shrink-0 text-2xl leading-none tabular-nums">
-                      {formatTime(row.time)}
-                    </span>
-
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "keyline font-display text-on-color grid size-8 shrink-0 place-items-center text-xs leading-none",
-                        BARBER_CHIP[row.barberId]?.accent ?? "bg-blue",
-                      )}
+                {list.map((row) => {
+                  const barber = byId.get(row.barberId);
+                  return (
+                    <li
+                      key={row.id}
+                      className="keyline-b flex flex-wrap items-center gap-x-5 gap-y-3 py-4"
                     >
-                      {BARBER_CHIP[row.barberId]?.initials ??
-                        row.barberName.slice(0, 2).toUpperCase()}
-                    </span>
+                      <span className="font-display w-16 shrink-0 text-2xl leading-none tabular-nums">
+                        {formatTime(row.time)}
+                      </span>
 
-                    <span className="min-w-40 flex-1">
-                      <span className="font-display block text-base leading-tight">
-                        {row.customerName}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "keyline font-display text-on-color grid size-8 shrink-0 place-items-center text-xs leading-none",
+                          FILL[barber?.accent ?? "blue"],
+                        )}
+                      >
+                        {barber?.initials ??
+                          row.barberName.slice(0, 2).toUpperCase()}
                       </span>
-                      <span className="text-ink-soft block text-sm">
-                        {row.serviceName} · {formatPrice(row.price)} ·{" "}
-                        {row.barberName}
-                      </span>
-                      {row.notes ? (
-                        <span className="text-ink-faint mt-1 block text-sm italic">
-                          «{row.notes}»
+
+                      <span className="min-w-40 flex-1">
+                        <span className="font-display block text-base leading-tight">
+                          {row.customerName}
                         </span>
-                      ) : null}
-                    </span>
+                        <span className="text-ink-soft block text-sm">
+                          {row.serviceName} · {formatPrice(row.price)} ·{" "}
+                          {row.barberName}
+                        </span>
+                        {row.notes ? (
+                          <span className="text-ink-faint mt-1 block text-sm italic">
+                            «{row.notes}»
+                          </span>
+                        ) : null}
+                      </span>
 
-                    <span className="flex shrink-0 items-center gap-2">
-                      <a
-                        href={`tel:${row.customerPhone}`}
-                        aria-label={`Llamar a ${row.customerName} al ${row.customerPhone}`}
-                        className="keyline bg-paper-raised grid size-10 place-items-center"
-                      >
-                        <Phone aria-hidden="true" size={16} />
-                      </a>
-                      <a
-                        href={`https://wa.me/${row.customerPhone.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Escribir a ${row.customerName} por WhatsApp`}
-                        className="keyline bg-paper-raised grid size-10 place-items-center"
-                      >
-                        <WhatsAppGlyph size={17} />
-                      </a>
-                      <form action={cancelFromDashboard}>
-                        <input type="hidden" name="id" value={row.id} />
-                        <Button
-                          type="submit"
-                          tone="paper"
-                          size="sm"
-                          ariaLabel={`Anular la cita de ${row.customerName} del ${longDateLabel(row.date)} a las ${formatTime(row.time)}`}
+                      <span className="flex shrink-0 items-center gap-2">
+                        <a
+                          href={`tel:${row.customerPhone}`}
+                          aria-label={`Llamar a ${row.customerName} al ${row.customerPhone}`}
+                          className="keyline bg-paper-raised grid size-10 place-items-center"
                         >
-                          Anular
-                        </Button>
-                      </form>
-                    </span>
-                  </li>
-                ))}
+                          <Phone aria-hidden="true" size={16} />
+                        </a>
+                        <a
+                          href={`https://wa.me/${row.customerPhone.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Escribir a ${row.customerName} por WhatsApp`}
+                          className="keyline bg-paper-raised grid size-10 place-items-center"
+                        >
+                          <WhatsAppGlyph size={17} />
+                        </a>
+                        <form action={cancelFromDashboard}>
+                          <input type="hidden" name="id" value={row.id} />
+                          <Button
+                            type="submit"
+                            tone="paper"
+                            size="sm"
+                            ariaLabel={`Anular la cita de ${row.customerName} del ${longDateLabel(row.date)} a las ${formatTime(row.time)}`}
+                          >
+                            Anular
+                          </Button>
+                        </form>
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}
@@ -271,15 +245,36 @@ export default async function AgendaPage() {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+/** Quién no está disponible hoy, para no llevarse sorpresas en el mostrador. */
+function TodayNotices({ team, today }: { team: Barber[]; today: string }) {
+  const away = team.filter(
+    (b) => b.status !== "baja" && (b.status === "pausa" || isAway(b, today)),
+  );
+  if (away.length === 0) return null;
+
   return (
-    <div className="bg-paper min-h-svh py-10">
-      <div className="container-page">
-        <p className="eyebrow text-ink-faint mb-6">
-          {business.shortName} · interno
-        </p>
-        {children}
-      </div>
+    <div className="keyline bg-yellow text-on-color mt-6 p-4">
+      <p className="eyebrow">Hoy no cogen citas</p>
+      <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold">
+        {away.map((b) => {
+          const absence = (b.absences ?? []).find(
+            (a) => today >= a.from && today <= a.to,
+          );
+          return (
+            <li key={b.id}>
+              {b.name}
+              <span className="font-normal">
+                {" · "}
+                {absence?.reason ??
+                  (b.status === "pausa" ? "en pausa" : "ausente")}
+                {absence
+                  ? ` hasta el ${absence.to.split("-").reverse().slice(0, 2).join("/")}`
+                  : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import {
   ANY_BARBER,
-  barbers,
   booking as bookingConfig,
   openingHours,
   services,
 } from "@/data/business";
+import { barberWorksAt, type Barber } from "@/lib/team";
 import {
   addDays,
   getBusinessNow,
@@ -97,14 +97,19 @@ export function bookableDates(now = new Date()): string[] {
 }
 
 /**
- * Cruza los huecos teóricos con lo ya reservado.
+ * Cruza los huecos teóricos con el equipo y con lo ya reservado.
+ *
+ * Para que un barbero cuente como libre a una hora tienen que darse tres cosas:
+ * que esté activo y no ausente, que esa hora entre en SU horario (no solo en el
+ * del local) y que no tenga ya una cita. Un hueco se ofrece mientras quede al
+ * menos uno.
  *
  * `taken` son claves "HH:MM__barberId" de las citas existentes de ese día.
- * Un hueco se ofrece mientras quede al menos un barbero libre.
  */
 export function availableSlots(
   isoDate: string,
   taken: Set<string>,
+  barbers: Barber[],
   now = new Date(),
 ): Slot[] {
   return slotsForDate(isoDate)
@@ -112,7 +117,11 @@ export function availableSlots(
     .map((time) => ({
       time,
       freeBarberIds: barbers
-        .filter((barber) => !taken.has(`${time}__${barber.id}`))
+        .filter(
+          (barber) =>
+            barberWorksAt(barber, isoDate, time) &&
+            !taken.has(`${time}__${barber.id}`),
+        )
         .map((barber) => barber.id),
     }))
     .filter((slot) => slot.freeBarberIds.length > 0);
@@ -155,7 +164,10 @@ export function normalisePhone(raw: string): string {
  * Se ejecuta también en el servidor: nunca se confía en la validación del
  * navegador, porque cualquiera puede saltársela.
  */
-export function validateBooking(input: unknown): ValidationResult {
+export function validateBooking(
+  input: unknown,
+  barbers: Barber[],
+): ValidationResult {
   if (typeof input !== "object" || input === null) {
     return { ok: false, error: "No hemos recibido los datos de la reserva." };
   }

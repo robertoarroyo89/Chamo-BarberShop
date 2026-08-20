@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { ANY_BARBER, barbers, services } from "@/data/business";
+import { ANY_BARBER, services } from "@/data/business";
+import { getAllBarbers } from "@/lib/barbersStore";
+import { barberWorksAt, bookableBarbers } from "@/lib/team";
 import { slotKey, validateBooking } from "@/lib/booking";
 import { APPOINTMENTS, getDb } from "@/lib/firebaseAdmin";
 import { longDateLabel } from "@/lib/hours";
@@ -88,7 +90,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const check = validateBooking(payload);
+  // El equipo válido se consulta en el momento de reservar, no se da por
+  // sabido: alguien pudo darse de baja mientras el cliente rellenaba el
+  // formulario.
+  const team = bookableBarbers(await getAllBarbers());
+  const check = validateBooking(payload, team);
   if (!check.ok || !check.data) {
     return NextResponse.json(
       { ok: false, error: check.error },
@@ -101,10 +107,29 @@ export async function POST(request: Request) {
 
   // Con "el primero que quede libre" se prueban todos por orden; con un barbero
   // concreto, solo ese.
-  const candidates =
+  const candidates = (
     booking.barberId === ANY_BARBER.id
-      ? barbers
-      : barbers.filter((barber) => barber.id === booking.barberId);
+      ? team
+      : team.filter((barber) => barber.id === booking.barberId)
+  ).filter((barber) => barberWorksAt(barber, booking.date, booking.time));
+
+  /*
+   * Nadie disponible a esa hora: puede que el barbero elegido no trabaje en ese
+   * tramo, esté ausente o se haya dado de baja mientras se rellenaba el
+   * formulario. Se distingue del hueco pillado porque el mensaje al cliente
+   * tiene que ser distinto.
+   */
+  if (candidates.length === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        slotTaken: true,
+        error:
+          "Esa hora ya no está disponible con ese barbero. Elige otra hora o déjanos asignarte al primero libre.",
+      },
+      { status: 409 },
+    );
+  }
 
   /*
    * Llave de gestión: se genera UNA vez, antes de intentar con los barberos,

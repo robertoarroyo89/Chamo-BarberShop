@@ -4,6 +4,8 @@ import { Reveal } from "@/components/ui/Reveal";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { WhatsAppGlyph } from "@/components/ui/icons";
 import { business } from "@/data/business";
+import { getAllBarbers } from "@/lib/barbersStore";
+import { bookableBarbers } from "@/lib/team";
 import { isBookingConfigured } from "@/lib/firebaseAdmin";
 import { pad2 } from "@/lib/utils";
 
@@ -14,8 +16,12 @@ import { pad2 } from "@/lib/utils";
  * está configurada y se le pasa el resultado al formulario. Así el cliente no
  * necesita una petición solo para saber qué interfaz pintar.
  */
-export function Booking() {
+export async function Booking() {
   const configured = isBookingConfigured();
+  // El equipo se lee aquí para que el selector salga ya pintado en el HTML.
+  const team = bookableBarbers(await getAllBarbers()).map(
+    ({ id, name, initials, accent }) => ({ id, name, initials, accent }),
+  );
 
   return (
     <section
@@ -102,7 +108,7 @@ export function Booking() {
 
           <div className="lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
             <Reveal y={24} delay={0.08}>
-              <BookingForm configured={configured} />
+              <BookingForm configured={configured} initialBarbers={team} />
             </Reveal>
           </div>
         </div>

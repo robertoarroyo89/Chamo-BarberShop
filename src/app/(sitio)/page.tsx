@@ -12,6 +12,16 @@ import { Marquee } from "@/components/ui/Marquee";
 import { MARQUEE_ITEMS } from "@/lib/constants";
 
 /**
+ * Regeneración incremental.
+ *
+ * La página sigue sirviéndose desde caché, pero el equipo ya no está escrito en
+ * el código: viene de la base de datos. El panel llama a `revalidatePath("/")`
+ * en cada cambio, así que un alta o una baja se ve al instante; este plazo es
+ * solo la red de seguridad por si esa llamada se perdiera.
+ */
+export const revalidate = 3600;
+
+/**
  * Página única.
  *
  * Componente de servidor. Solo declaran "use client" las piezas que de verdad
