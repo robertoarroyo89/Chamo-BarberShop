@@ -516,172 +516,190 @@ export function BookingForm({ configured, initialBarbers }: BookingFormProps) {
         if (complete && !submitting) void submit();
       }}
     >
-      <div className="space-y-8 p-5 sm:p-8">
-        {/* --- 1. Servicio --------------------------------------------- */}
-        <fieldset>
-          <Legend step="1" tone="blue">
-            ¿Qué te hacemos?
-          </Legend>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-            {services.map((option) => (
-              <Choice
-                key={option.id}
-                name="servicio"
-                value={option.id}
-                checked={serviceId === option.id}
-                onChange={setServiceId}
-              >
-                <span className="flex w-full items-baseline justify-between gap-3">
-                  <span className="font-display text-base leading-tight">
-                    {option.name}
-                  </span>
-                  <span className="font-display shrink-0 text-base tabular-nums">
-                    {formatPrice(option.price)}
-                  </span>
-                </span>
-              </Choice>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* --- 2. Barbero ---------------------------------------------- */}
-        <fieldset>
-          <Legend step="2" tone="yellow">
-            ¿Con quién?
-          </Legend>
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {withAnyOption(team).map((option) => (
-              <Choice
-                key={option.id}
-                name="barbero"
-                value={option.id}
-                checked={barber === option.id}
-                onChange={setBarberId}
-              >
-                <span className="flex items-center gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "keyline font-display text-on-color grid size-8 shrink-0 place-items-center text-xs leading-none",
-                      ACCENTS[option.accent],
-                    )}
-                  >
-                    {option.initials}
-                  </span>
-                  <span className="font-display text-sm">{option.name}</span>
-                </span>
-              </Choice>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* --- 3. Día --------------------------------------------------- */}
-        <fieldset>
-          <Legend step="3" tone="red">
-            ¿Qué día?
-          </Legend>
-          {dates.length === 0 ? (
-            <p className="text-ink-soft mt-4 text-sm">
-              Ahora mismo no hay días abiertos para reservar. Escríbenos por
-              WhatsApp.
-            </p>
-          ) : (
-            <div className="no-scrollbar -mx-5 mt-4 flex snap-x gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-              {dates.map((option) => {
-                const { weekday, day, month } = describeDate(option);
-                const isToday = option === dates[0];
-                return (
-                  <Choice
-                    key={option}
-                    name="dia"
-                    value={option}
-                    checked={date === option}
-                    onChange={setDate}
-                    className="shrink-0 snap-start"
-                    label={longDateLabel(option)}
-                  >
-                    <span className="flex w-14 flex-col items-center gap-0.5">
-                      <span className="text-[0.625rem] font-bold tracking-[0.1em] uppercase">
-                        {isToday ? "Hoy" : weekday}
-                      </span>
-                      <span className="font-display text-xl leading-none">
-                        {day}
-                      </span>
-                      <span className="text-[0.625rem] uppercase">{month}</span>
-                    </span>
-                  </Choice>
-                );
-              })}
-            </div>
-          )}
-        </fieldset>
-
-        {/* --- 4. Hora -------------------------------------------------- */}
-        <fieldset>
-          <Legend step="4" tone="blue">
-            ¿A qué hora?
-          </Legend>
-
-          <div aria-live="polite" className="mt-4">
-            {visibleSlots === null ? (
-              <p className="text-ink-soft flex items-center gap-2 text-sm">
-                <Loader2
-                  aria-hidden="true"
-                  size={15}
-                  className="animate-spin"
-                />
-                Buscando huecos…
-              </p>
-            ) : slotsError ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-red-ink text-sm font-semibold">
-                  {slotsError}
-                </p>
-                <Button
-                  onClick={() => {
-                    setFailure(null);
-                    loadSlots(date);
-                  }}
-                  tone="paper"
-                  size="sm"
-                  icon={<RotateCcw aria-hidden="true" size={14} />}
+      {/*
+        Dos columnas en escritorio, en orden de columna y no de fila: a la
+        izquierda QUÉ y CON QUIÉN, a la derecha CUÁNDO. Apilado en una sola
+        columna el formulario pasaba de mil píxeles de alto.
+      */}
+      <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-2 lg:gap-x-10">
+        {/*
+          `min-w-0` no es decorativo: los elementos de una rejilla tienen
+          `min-width: auto`, así que un hijo más ancho que la columna —el carril
+          de fechas, que sangra con márgenes negativos— la estira y desborda el
+          formulario entero. Con esto la columna puede encogerse y el carril
+          vuelve a desplazarse dentro de ella.
+        */}
+        <div className="min-w-0 space-y-8">
+          {/* --- 1. Servicio --------------------------------------------- */}
+          <fieldset>
+            <Legend step="1" tone="blue">
+              ¿Qué te hacemos?
+            </Legend>
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              {services.map((option) => (
+                <Choice
+                  key={option.id}
+                  name="servicio"
+                  value={option.id}
+                  checked={serviceId === option.id}
+                  onChange={setServiceId}
                 >
-                  Reintentar
-                </Button>
-              </div>
-            ) : visibleSlots.length === 0 ? (
-              <p className="text-ink-soft text-sm">
-                Ese día está completo
-                {barber !== ANY_BARBER.id ? " para ese barbero" : ""}. Prueba
-                otro día
-                {barber !== ANY_BARBER.id ? " o elige “Cualquiera”" : ""}.
+                  <span className="flex w-full items-baseline justify-between gap-3">
+                    <span className="font-display text-base leading-tight">
+                      {option.name}
+                    </span>
+                    <span className="font-display shrink-0 text-base tabular-nums">
+                      {formatPrice(option.price)}
+                    </span>
+                  </span>
+                </Choice>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* --- 2. Barbero ---------------------------------------------- */}
+          <fieldset>
+            <Legend step="2" tone="yellow">
+              ¿Con quién?
+            </Legend>
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {withAnyOption(team).map((option) => (
+                <Choice
+                  key={option.id}
+                  name="barbero"
+                  value={option.id}
+                  checked={barber === option.id}
+                  onChange={setBarberId}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "keyline font-display text-on-color grid size-8 shrink-0 place-items-center text-xs leading-none",
+                        ACCENTS[option.accent],
+                      )}
+                    >
+                      {option.initials}
+                    </span>
+                    <span className="font-display text-sm">{option.name}</span>
+                  </span>
+                </Choice>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="min-w-0 space-y-8">
+          {/* --- 3. Día --------------------------------------------------- */}
+          <fieldset>
+            <Legend step="3" tone="red">
+              ¿Qué día?
+            </Legend>
+            {dates.length === 0 ? (
+              <p className="text-ink-soft mt-4 text-sm">
+                Ahora mismo no hay días abiertos para reservar. Escríbenos por
+                WhatsApp.
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-6">
-                {visibleSlots.map((slot) => (
-                  <Choice
-                    key={slot.time}
-                    name="hora"
-                    value={slot.time}
-                    checked={time === slot.time}
-                    onChange={setTime}
-                  >
-                    <span className="font-display block w-full text-center text-base tabular-nums">
-                      {formatTime(slot.time)}
-                    </span>
-                  </Choice>
-                ))}
+              <div className="no-scrollbar -mx-5 mt-4 flex snap-x gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
+                {dates.map((option) => {
+                  const { weekday, day, month } = describeDate(option);
+                  const isToday = option === dates[0];
+                  return (
+                    <Choice
+                      key={option}
+                      name="dia"
+                      value={option}
+                      checked={date === option}
+                      onChange={setDate}
+                      className="shrink-0 snap-start"
+                      label={longDateLabel(option)}
+                    >
+                      <span className="flex w-14 flex-col items-center gap-0.5">
+                        <span className="text-[0.625rem] font-bold tracking-[0.1em] uppercase">
+                          {isToday ? "Hoy" : weekday}
+                        </span>
+                        <span className="font-display text-xl leading-none">
+                          {day}
+                        </span>
+                        <span className="text-[0.625rem] uppercase">
+                          {month}
+                        </span>
+                      </span>
+                    </Choice>
+                  );
+                })}
               </div>
             )}
-          </div>
-        </fieldset>
+          </fieldset>
 
-        {/* --- 5. Datos ------------------------------------------------- */}
-        <fieldset>
+          {/* --- 4. Hora -------------------------------------------------- */}
+          <fieldset>
+            <Legend step="4" tone="blue">
+              ¿A qué hora?
+            </Legend>
+
+            <div aria-live="polite" className="mt-4">
+              {visibleSlots === null ? (
+                <p className="text-ink-soft flex items-center gap-2 text-sm">
+                  <Loader2
+                    aria-hidden="true"
+                    size={15}
+                    className="animate-spin"
+                  />
+                  Buscando huecos…
+                </p>
+              ) : slotsError ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-red-ink text-sm font-semibold">
+                    {slotsError}
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setFailure(null);
+                      loadSlots(date);
+                    }}
+                    tone="paper"
+                    size="sm"
+                    icon={<RotateCcw aria-hidden="true" size={14} />}
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              ) : visibleSlots.length === 0 ? (
+                <p className="text-ink-soft text-sm">
+                  Ese día está completo
+                  {barber !== ANY_BARBER.id ? " para ese barbero" : ""}. Prueba
+                  otro día
+                  {barber !== ANY_BARBER.id ? " o elige “Cualquiera”" : ""}.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5">
+                  {visibleSlots.map((slot) => (
+                    <Choice
+                      key={slot.time}
+                      name="hora"
+                      value={slot.time}
+                      checked={time === slot.time}
+                      onChange={setTime}
+                    >
+                      <span className="font-display block w-full text-center text-base tabular-nums">
+                        {formatTime(slot.time)}
+                      </span>
+                    </Choice>
+                  ))}
+                </div>
+              )}
+            </div>
+          </fieldset>
+        </div>
+
+        {/* --- 5. Datos: a lo ancho de las dos columnas ------------------ */}
+        <fieldset className="lg:col-span-2">
           <Legend step="5" tone="yellow">
             ¿Quién eres?
           </Legend>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field
               id="reserva-nombre"
               label="Nombre"
@@ -703,9 +721,6 @@ export function BookingForm({ configured, initialBarbers }: BookingFormProps) {
               hint="Por si tenemos que avisarte de algo."
               required
             />
-          </div>
-
-          <div className="mt-4">
             <Field
               id="reserva-notas"
               label="Algo que debamos saber"

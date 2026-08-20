@@ -42,76 +42,61 @@ export async function Booking() {
 
       <div className="container-page relative">
         {/*
-          En móvil manda el formulario: título, formulario y, al final, las vías
-          alternativas. En escritorio vuelve a dos columnas, con el formulario a
-          la derecha ocupando las dos filas.
+          Cabecera horizontal y formulario a todo el ancho.
+          En dos columnas el formulario medía más de mil píxeles de alto: una
+          columna estrecha obliga a apilar los cinco pasos y en escritorio se
+          convertía en un scroll interminable. Ahora los pasos se reparten en
+          dos columnas dentro del propio formulario.
         */}
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:gap-10">
-          <div className="lg:col-span-5 lg:row-start-1">
-            <SectionTitle
-              index={pad2(1)}
-              eyebrow="Tu hueco"
-              lines={["Pide", "cita"]}
-              tone="red"
-            />
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <SectionTitle
+            index={pad2(1)}
+            eyebrow="Tu hueco"
+            lines={["Pide", "cita"]}
+            tone="red"
+          />
 
-            <Reveal y={18} delay={0.12}>
-              <p className="text-ink-soft mt-7 max-w-sm text-base leading-relaxed">
-                Elige servicio, barbero y hora. Sin registrarte y sin descargar
-                nada: en tres toques está hecho.
-              </p>
-            </Reveal>
-
-            <Reveal y={16} delay={0.2}>
-              <div className="mt-7">
-                <OpenStatus chip />
-              </div>
-            </Reveal>
-          </div>
-
-          {/* Vías alternativas: al final en móvil, bajo el título en escritorio. */}
-          <div className="order-last lg:order-none lg:col-span-5 lg:col-start-1 lg:row-start-2">
-            <Reveal y={16} delay={0.2}>
-              <div>
-                <div className="keyline bg-paper-raised p-4">
-                  <p className="eyebrow text-ink-faint">También puedes</p>
-                  <ul className="mt-3 space-y-2 text-sm">
-                    <li>
-                      <a
-                        href={business.whatsapp.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:decoration-ink inline-flex items-center gap-2 font-semibold underline decoration-transparent underline-offset-4 transition-colors"
-                        aria-label="Escribir por WhatsApp (se abre en una pestaña nueva)"
-                      >
-                        <WhatsAppGlyph size={15} />
-                        Escribirnos por WhatsApp
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href={business.phone.href}
-                        className="hover:decoration-ink font-semibold underline decoration-transparent underline-offset-4 transition-colors"
-                        aria-label={`Llamar al ${business.phone.display}`}
-                      >
-                        Llamar al {business.phone.display}
-                      </a>
-                    </li>
-                    <li className="text-ink-soft">
-                      O pasarte sin cita, si pillas hueco.
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-
-          <div className="lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
-            <Reveal y={24} delay={0.08}>
-              <BookingForm configured={configured} initialBarbers={team} />
-            </Reveal>
-          </div>
+          <Reveal y={16} delay={0.12} className="lg:pb-3 lg:text-right">
+            <p className="text-ink-soft max-w-sm text-base leading-relaxed">
+              Elige servicio, barbero y hora. Sin registrarte y sin descargar
+              nada: en tres toques está hecho.
+            </p>
+            <div className="mt-4 lg:flex lg:justify-end">
+              <OpenStatus chip />
+            </div>
+          </Reveal>
         </div>
+
+        <Reveal y={24} delay={0.08} className="mt-9">
+          <BookingForm configured={configured} initialBarbers={team} />
+        </Reveal>
+
+        {/* Vías alternativas, en una tira: ocupan una línea en vez de una caja. */}
+        <Reveal y={16} delay={0.16}>
+          <div className="keyline bg-paper-raised mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3.5">
+            <span className="eyebrow text-ink-faint">También puedes</span>
+            <a
+              href={business.whatsapp.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:decoration-ink inline-flex items-center gap-2 text-sm font-semibold underline decoration-transparent underline-offset-4 transition-colors"
+              aria-label="Escribir por WhatsApp (se abre en una pestaña nueva)"
+            >
+              <WhatsAppGlyph size={15} />
+              Escribirnos por WhatsApp
+            </a>
+            <a
+              href={business.phone.href}
+              className="hover:decoration-ink text-sm font-semibold underline decoration-transparent underline-offset-4 transition-colors"
+              aria-label={`Llamar al ${business.phone.display}`}
+            >
+              Llamar al {business.phone.display}
+            </a>
+            <span className="text-ink-soft text-sm">
+              O pasarte sin cita, si pillas hueco.
+            </span>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
