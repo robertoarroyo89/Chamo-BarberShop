@@ -25,6 +25,7 @@ import {
 } from "@/lib/adminAuth";
 import { APPOINTMENTS, getDb } from "@/lib/firebaseAdmin";
 import { isValidIsoDate } from "@/lib/hours";
+import { openingHours } from "@/data/business";
 import type { TimeRange, WeekDay } from "@/data/business";
 
 /**
@@ -196,6 +197,28 @@ export async function saveHours(
 
   const hours: Barber["hours"] = {};
 
+  /**
+   * Horas admitidas: las del horario del local, en pasos de media hora.
+   *
+   * El selector del panel ya solo ofrece estas, pero se vuelve a comprobar
+   * aquí: nunca se da por buena la validación del navegador.
+   */
+  const allowed = new Set<string>();
+  {
+    const all = openingHours.flatMap((d) => d.ranges);
+    if (all.length > 0) {
+      const toMin = (t: string) =>
+        Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+      const first = Math.min(...all.map((r) => toMin(r.from)));
+      const last = Math.max(...all.map((r) => toMin(r.to)));
+      for (let m = first; m <= last; m += 30) {
+        allowed.add(
+          `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`,
+        );
+      }
+    }
+  }
+
   for (const day of [1, 2, 3, 4, 5, 6, 0] as WeekDay[]) {
     const mode = String(formData.get(`mode-${day}`) ?? "local");
 
@@ -212,10 +235,19 @@ export async function saveHours(
     for (const slot of [1, 2]) {
       const from = String(formData.get(`from-${day}-${slot}`) ?? "");
       const to = String(formData.get(`to-${day}-${slot}`) ?? "");
-      if (!from || !to) continue;
 
-      if (!/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) {
-        return { error: "Alguna hora no tiene un formato válido." };
+      // Tramo vacío del todo: simplemente no existe.
+      if (!from && !to) continue;
+
+      // A medio rellenar sí es un error: antes se descartaba en silencio y el
+      // horario se guardaba distinto de lo que la persona creía haber puesto.
+      if (!from || !to) {
+        return {
+          error: "Hay un tramo a medias: pon la hora de inicio y la de fin.",
+        };
+      }
+      if (!allowed.has(from) || !allowed.has(to)) {
+        return { error: "Alguna hora queda fuera del horario del local." };
       }
       if (from >= to) {
         return {
@@ -225,8 +257,23 @@ export async function saveHours(
       ranges.push({ from, to });
     }
 
-    // "Propio" sin ningún tramo equivale a librar; se guarda así para que no
-    // quede un día en un estado ambiguo.
+    // "Propio" sin ningún tramo es ambiguo: puede ser un descuido. Se pide que
+    // se diga explícitamente con "Libra".
+    if (ranges.length === 0) {
+      return {
+        error:
+          "Has marcado un día como propio pero sin horas. Ponle un tramo o márcalo como “Libra”.",
+      };
+    }
+
+    // Dos tramos que se pisan darían huecos duplicados.
+    if (ranges.length === 2) {
+      const [a, b] = [...ranges].sort((x, y) => x.from.localeCompare(y.from));
+      if (b.from < a.to) {
+        return { error: "Los dos tramos de un día se solapan." };
+      }
+    }
+
     hours[day] = ranges;
   }
 

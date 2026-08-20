@@ -7,9 +7,9 @@ import {
   createAbsence,
   deleteAbsence,
   removeBarber,
-  saveHours,
   type TeamState,
 } from "@/app/agenda/actions";
+import { HoursEditor } from "@/components/agenda/HoursEditor";
 import { Button } from "@/components/ui/Button";
 import type { Barber, BarberStatus } from "@/lib/team";
 import { formatRange } from "@/lib/hours";
@@ -43,10 +43,6 @@ const DAYS: { day: number; label: string }[] = [
 export function BarberCard({ barber }: { barber: Barber }) {
   const [panel, setPanel] = useState<"none" | "hours" | "absence">("none");
 
-  const [hoursState, saveHoursAction, savingHours] = useActionState<
-    TeamState,
-    FormData
-  >(saveHours, {});
   const [absenceState, absenceAction, savingAbsence] = useActionState<
     TeamState,
     FormData
@@ -217,57 +213,8 @@ export function BarberCard({ barber }: { barber: Barber }) {
           </Button>
         </div>
 
-        {/* --- Formulario de horario -------------------------------------- */}
-        {panel === "hours" ? (
-          <form action={saveHoursAction} className="keyline mt-5 p-4">
-            <input type="hidden" name="id" value={barber.id} />
-            <p className="font-display text-base">Horario semanal</p>
-            <p className="text-ink-soft mt-1 text-xs leading-relaxed">
-              «Local» sigue el horario de la barbería. Usa «Propio» para turnos:
-              dos tramos por día como máximo.
-            </p>
-
-            <div className="mt-4 space-y-3">
-              {DAYS.map(({ day, label }) => (
-                <DayRow key={day} day={day} label={label} barber={barber} />
-              ))}
-            </div>
-
-            {hoursState.error ? (
-              <p
-                role="alert"
-                className="keyline bg-red text-on-color mt-4 px-3 py-2 text-xs font-semibold"
-              >
-                {hoursState.error}
-              </p>
-            ) : null}
-            {hoursState.ok ? (
-              <p className="keyline bg-blue text-on-color mt-4 px-3 py-2 text-xs font-semibold">
-                {hoursState.ok}
-              </p>
-            ) : null}
-
-            <div className="mt-4">
-              <Button
-                type="submit"
-                tone="blue"
-                size="sm"
-                disabled={savingHours}
-                icon={
-                  savingHours ? (
-                    <Loader2
-                      aria-hidden="true"
-                      size={14}
-                      className="animate-spin"
-                    />
-                  ) : undefined
-                }
-              >
-                {savingHours ? "Guardando…" : "Guardar horario"}
-              </Button>
-            </div>
-          </form>
-        ) : null}
+        {/* --- Horario ---------------------------------------------------- */}
+        {panel === "hours" ? <HoursEditor barber={barber} /> : null}
 
         {/* --- Formulario de ausencia ------------------------------------- */}
         {panel === "absence" ? (
@@ -366,71 +313,6 @@ export function BarberCard({ barber }: { barber: Barber }) {
         ) : null}
       </div>
     </article>
-  );
-}
-
-/** Una fila del editor de horario: modo y, si es propio, sus dos tramos. */
-function DayRow({
-  day,
-  label,
-  barber,
-}: {
-  day: number;
-  label: string;
-  barber: Barber;
-}) {
-  const own = barber.hours?.[day as 0 | 1 | 2 | 3 | 4 | 5 | 6];
-  const initialMode =
-    own === undefined || own === null
-      ? "local"
-      : own.length === 0
-        ? "libra"
-        : "propio";
-  const [mode, setMode] = useState(initialMode);
-  const ranges = own && own.length > 0 ? own : [];
-
-  return (
-    <div className="keyline-b flex flex-wrap items-center gap-x-3 gap-y-2 pb-3">
-      <span className="font-display w-20 shrink-0 text-sm">{label}</span>
-
-      <select
-        name={`mode-${day}`}
-        value={mode}
-        onChange={(e) => setMode(e.target.value)}
-        aria-label={`${label}: tipo de horario`}
-        className="keyline bg-paper px-2 py-1.5 text-xs"
-      >
-        <option value="local">Local</option>
-        <option value="libra">Libra</option>
-        <option value="propio">Propio</option>
-      </select>
-
-      {mode === "propio" ? (
-        <span className="flex flex-wrap items-center gap-2">
-          {[1, 2].map((slot) => (
-            <span key={slot} className="flex items-center gap-1">
-              <input
-                type="time"
-                name={`from-${day}-${slot}`}
-                defaultValue={ranges[slot - 1]?.from ?? ""}
-                aria-label={`${label}, tramo ${slot}, desde`}
-                className="keyline bg-paper w-24 px-2 py-1.5 text-xs tabular-nums"
-              />
-              <span aria-hidden="true" className="text-ink-faint text-xs">
-                –
-              </span>
-              <input
-                type="time"
-                name={`to-${day}-${slot}`}
-                defaultValue={ranges[slot - 1]?.to ?? ""}
-                aria-label={`${label}, tramo ${slot}, hasta`}
-                className="keyline bg-paper w-24 px-2 py-1.5 text-xs tabular-nums"
-              />
-            </span>
-          ))}
-        </span>
-      ) : null}
-    </div>
   );
 }
 
