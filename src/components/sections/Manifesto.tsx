@@ -18,7 +18,7 @@ export function Manifesto() {
       <div className="container-page grid gap-12 lg:grid-cols-12 lg:gap-10">
         <div className="lg:col-span-7">
           <SectionTitle
-            index={pad2(1)}
+            index={pad2(4)}
             eyebrow="Quiénes somos"
             lines={["Barbería", "de barrio."]}
             tone="blue"

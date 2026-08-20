@@ -28,19 +28,22 @@ export const revalidate = 3600;
  * necesitan interacción: el formulario de reserva, el carrusel de opiniones, la
  * cabecera, el mapa y el interruptor de tema.
  *
- * El orden cuenta una historia: quiénes somos → qué cuesta → qué hacemos →
- * quién lo hace → reservar → qué dicen → dónde estamos.
+ * La reserva va primero, pegada al héroe: es a lo que viene la mayoría, y su
+ * propio formulario ya lista los servicios con precio, así que no necesita que
+ * nada la preceda. Después la página se toma su tiempo para contar la casa:
+ * carta completa → trabajos → quiénes somos → el equipo → opiniones → dónde
+ * estamos.
  */
 export default function Home() {
   return (
     <>
       <Hero />
       <Marquee items={[...MARQUEE_ITEMS]} tone="yellow" />
-      <Manifesto />
+      <Booking />
       <Services />
       <Works />
+      <Manifesto />
       <Team />
-      <Booking />
       <Reviews />
       <Visit />
 

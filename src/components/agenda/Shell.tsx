@@ -1,4 +1,5 @@
 import { logout } from "@/app/agenda/actions";
+import { diagnoseFirebase } from "@/lib/firebaseAdmin";
 import { Button } from "@/components/ui/Button";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { cn } from "@/lib/utils";
@@ -90,14 +91,82 @@ export function NotConfigured() {
   );
 }
 
-/** Aviso cuando falta Firebase y por tanto no hay agenda que mostrar. */
+const VAR_LABEL = {
+  projectId: "FIREBASE_PROJECT_ID",
+  clientEmail: "FIREBASE_CLIENT_EMAIL",
+  privateKey: "FIREBASE_PRIVATE_KEY",
+} as const;
+
+const STATE_TEXT = {
+  ok: "correcta",
+  falta: "no llega al servidor",
+  formato: "llega, pero con un formato que no vale",
+} as const;
+
+/**
+ * Aviso cuando falta Firebase, con el detalle de qué variable falla.
+ *
+ * Va aquí, detrás de la contraseña del panel, y solo dice si cada variable
+ * está y si tiene la forma esperada: nunca su valor. Sin esto, un despliegue
+ * mal configurado se limita a "no funciona", que es lo más costoso de depurar.
+ */
 export function NotConnected() {
+  const diagnosis = diagnoseFirebase();
+  const entries = ["projectId", "clientEmail", "privateKey"] as const;
+  const quotedKey = diagnosis.privateKey === "formato";
+
   return (
     <div className="keyline bg-paper-raised p-6 shadow-hard">
       <h1 className="text-2xl">Agenda sin conectar</h1>
-      <p className="text-ink-soft mt-3 max-w-md text-sm leading-relaxed">
-        No hay credenciales de Firebase en este despliegue, así que no hay citas
-        que mostrar. Ver README.md → «Reservas».
+      <p className="text-ink-soft mt-3 max-w-lg text-sm leading-relaxed">
+        Faltan credenciales de Firebase en este despliegue, así que no hay citas
+        que mostrar y el formulario de la web ofrece WhatsApp.
+      </p>
+
+      <ul className="keyline-t mt-5">
+        {entries.map((key) => {
+          const state = diagnosis[key];
+          return (
+            <li
+              key={key}
+              className="keyline-b flex flex-wrap items-center justify-between gap-3 py-3"
+            >
+              <code className="text-sm font-semibold">{VAR_LABEL[key]}</code>
+              <span
+                className={cn(
+                  "keyline px-2 py-0.5 text-xs font-bold uppercase",
+                  state === "ok"
+                    ? "bg-blue text-on-color"
+                    : "bg-red text-on-color",
+                )}
+              >
+                {STATE_TEXT[state]}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      {quotedKey ? (
+        <p className="keyline bg-yellow text-on-color mt-4 p-3 text-sm leading-relaxed">
+          La clave está pero no se reconoce. Lo habitual: en el panel de Vercel
+          el valor va <strong>sin comillas</strong>, y tiene que incluir las
+          líneas <code>-----BEGIN PRIVATE KEY-----</code> y{" "}
+          <code>-----END PRIVATE KEY-----</code>.
+        </p>
+      ) : null}
+
+      {diagnosis.initError ? (
+        <p className="keyline bg-red text-on-color mt-4 p-3 text-sm leading-relaxed">
+          Las tres variables llegan, pero Firebase las rechaza:{" "}
+          <span className="font-semibold">{diagnosis.initError}</span>
+        </p>
+      ) : null}
+
+      <p className="text-ink-soft mt-5 text-sm leading-relaxed">
+        Después de añadirlas o corregirlas en Vercel hay que{" "}
+        <strong>volver a desplegar</strong>: las variables se leen al construir
+        y al arrancar, no en cada visita. Ver README.md → «Reservas».
       </p>
     </div>
   );

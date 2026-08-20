@@ -330,8 +330,13 @@ export const business = {
   name: "El Chamo Barber Shop",
   shortName: "El Chamo",
 
-  /** Dominio público final. Cambiar al conectar el dominio definitivo. */
-  url: "https://elchamobarbershop.vercel.app",
+  /**
+   * Dominio público.
+   *
+   * De aquí salen el canónico, el sitemap, los datos estructurados y la imagen
+   * que se ve al compartir por WhatsApp. Cambiar al conectar el dominio propio.
+   */
+  url: "https://chamo-barber-shop.vercel.app",
 
   // --- Dirección -----------------------------------------------------------
   // Se usa la grafía de la ficha de Booksy, que gestiona el propio negocio:

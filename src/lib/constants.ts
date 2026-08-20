@@ -1,9 +1,8 @@
 /**
  * Secciones navegables.
  *
- * El orden cuenta una historia: quiénes somos → qué cuesta → qué hacemos →
- * quién lo hace → reservar → qué dicen → dónde estamos. "Reservar" no está en
- * la navegación porque tiene su propio botón destacado en la cabecera.
+ * "Reservar" no está en la navegación porque tiene su propio botón destacado en
+ * la cabecera y va nada más empezar la página.
  */
 export const NAV_SECTIONS = [
   { id: "servicios", label: "Servicios" },
@@ -21,11 +20,11 @@ export type NavSectionId = (typeof NAV_SECTIONS)[number]["id"];
  * "pegado" al pasar por el manifiesto o por la reserva.
  */
 export const OBSERVED_SECTIONS = [
-  "manifiesto",
+  "reservar",
   "servicios",
   "trabajos",
+  "manifiesto",
   "equipo",
-  "reservar",
   "opiniones",
   "visitanos",
 ] as const;

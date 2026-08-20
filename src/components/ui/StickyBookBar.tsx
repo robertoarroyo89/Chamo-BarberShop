@@ -11,9 +11,10 @@ import { business } from "@/data/business";
  * escritorio una pieza discreta abajo a la derecha. No es la burbuja verde de
  * siempre: usa el mismo lenguaje de filetes y sombra dura que el resto.
  *
- * Aparece al dejar atrás el héroe y desaparece al llegar al cierre, donde ya
- * hay botones a tamaño completo: no tiene sentido tapar contenido para repetir
- * la misma acción.
+ * Aparece al dejar atrás el héroe y se esconde en los dos sitios donde no hace
+ * falta: sobre el propio formulario de reserva y en el cierre, que ya lleva
+ * botones a tamaño completo. No tiene sentido tapar contenido para ofrecer una
+ * acción que el visitante tiene delante.
  *
  * Las dos piezas están siempre en el DOM y se muestran u ocultan con una
  * transición de CSS. Es una mejora progresiva: si por lo que sea el observador
@@ -25,11 +26,14 @@ export function StickyBookBar() {
 
   useEffect(() => {
     const hero = document.getElementById("inicio");
-    const closing = document.getElementById("cierre");
+    // Zonas donde el atajo estorba en lugar de ayudar.
+    const suppressors = ["reservar", "cierre"]
+      .map((id) => document.getElementById(id))
+      .filter((node): node is HTMLElement => node !== null);
 
     let pastHero = false;
-    let atClosing = false;
-    const sync = () => setVisible(pastHero && !atClosing);
+    const showing = new Set<string>();
+    const sync = () => setVisible(pastHero && showing.size === 0);
 
     const observers: IntersectionObserver[] = [];
 
@@ -45,15 +49,16 @@ export function StickyBookBar() {
       observers.push(observer);
     }
 
-    if (closing) {
+    for (const node of suppressors) {
       const observer = new IntersectionObserver(
         ([entry]) => {
-          atClosing = entry.isIntersecting;
+          if (entry.isIntersecting) showing.add(node.id);
+          else showing.delete(node.id);
           sync();
         },
         { threshold: 0 },
       );
-      observer.observe(closing);
+      observer.observe(node);
       observers.push(observer);
     }
 

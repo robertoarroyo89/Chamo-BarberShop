@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AgendaLogin } from "../agenda-login";
 import { AddBarber } from "@/components/agenda/AddBarber";
 import { BarberCard } from "@/components/agenda/BarberCard";
-import { NotConfigured, Shell } from "@/components/agenda/Shell";
+import { NotConfigured, NotConnected, Shell } from "@/components/agenda/Shell";
 import { getAllBarbers } from "@/lib/barbersStore";
 import { isBookingConfigured } from "@/lib/firebaseAdmin";
 import { panelState } from "@/lib/panelGuard";
@@ -34,8 +34,19 @@ export default async function EquipoPage() {
     );
   }
 
-  const team = await getAllBarbers();
   const connected = isBookingConfigured();
+
+  // Sin base de datos no se puede gestionar nada: se explica qué falta en vez
+  // de mostrar una plantilla de mentira que no se puede guardar.
+  if (!connected) {
+    return (
+      <Shell authed active="/agenda/equipo">
+        <NotConnected />
+      </Shell>
+    );
+  }
+
+  const team = await getAllBarbers();
 
   const active = team.filter((b) => b.status === "activo");
   const paused = team.filter((b) => b.status === "pausa");
@@ -53,18 +64,6 @@ export default async function EquipoPage() {
           </p>
         </div>
       </div>
-
-      {!connected ? (
-        <div className="keyline bg-yellow text-on-color mt-6 p-4 text-sm">
-          <p className="font-semibold">
-            Sin Firebase configurado, los cambios no se guardan.
-          </p>
-          <p className="mt-1">
-            Lo que ves es el equipo de partida del archivo de configuración. Ver
-            README.md → «Reservas».
-          </p>
-        </div>
-      ) : null}
 
       <div className="mt-7">
         <AddBarber />

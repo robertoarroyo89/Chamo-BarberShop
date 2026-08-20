@@ -49,7 +49,7 @@ export async function Booking() {
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-5 lg:row-start-1">
             <SectionTitle
-              index={pad2(5)}
+              index={pad2(1)}
               eyebrow="Tu hueco"
               lines={["Pide", "cita"]}
               tone="red"
