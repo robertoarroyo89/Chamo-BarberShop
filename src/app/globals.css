@@ -1,0 +1,435 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   EL CHAMO BARBER SHOP — sistema de diseño
+   ==========================================================================
+
+   Dirección: CARTEL DE CALLE.
+   El rótulo de la casa es un graffiti de letras infladas con contorno negro
+   grueso, nube azul, amarillo y rojo. En lugar de esconderlo en una web oscura
+   y minimalista, todo el sistema sale de él: papel crema de cartel pegado en la
+   pared, filetes negros de 2 px, bloques de color planos, sombras duras sin
+   difuminar (el desajuste de la serigrafía) y trama de puntos.
+
+   Nada de degradados suaves, ni esquinas muy redondeadas, ni vidrio.
+   ========================================================================== */
+
+@theme {
+  /* --- Tipografía -------------------------------------------------------- */
+  --font-display: var(--font-anton), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
+
+  /* --- Color de marca (muestreado del rótulo) ---------------------------- */
+  /* Los tres son para BLOQUES de color, no para texto sobre papel. */
+  --color-blue: #1b9fd8;
+  --color-yellow: #ffc61e;
+  --color-red: #e4342b;
+
+  /*
+   * Tinta para el texto que va ENCIMA de un bloque de color.
+   *
+   * No cambia con el tema, y es a propósito: el azul, el amarillo y el rojo son
+   * los mismos en claro y en oscuro, así que si el texto se aclarara con el
+   * tema, en oscuro quedaría crema sobre azul (3,0:1) y dejaría de cumplir.
+   * Negro sobre los tres colores da 6,2:1, 11,9:1 y 4,3:1.
+   */
+  --color-on-color: #141210;
+
+  /* --- Grosores y curvas ------------------------------------------------- */
+  --ease-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Ritmo ------------------------------------------------------------- */
+  --spacing-section: clamp(4.5rem, 10vh, 8rem);
+}
+
+/* --------------------------------------------------------------------------
+   TEMAS
+   El claro es el de casa. El oscuro es el MISMO cartel impreso en negro: los
+   colores de marca no cambian de identidad, solo se aclaran lo justo para
+   seguir cumpliendo contraste.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --paper: #f5f2ea; /* papel de cartel, crema */
+  --paper-raised: #ffffff;
+  --paper-sunken: #eae5d9;
+
+  --ink: #141210; /* negro del contorno */
+  --ink-soft: #4a453e;
+  --ink-faint: #6f6860; /* 4,91:1 sobre papel — válido como texto */
+
+  /* Variantes con contraste suficiente para TEXTO sobre papel. */
+  --blue-ink: #0d6f97; /* 5,02:1 */
+  --red-ink: #c9251d; /* 4,98:1 */
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #14120f;
+  --paper-raised: #1e1b17;
+  --paper-sunken: #0d0b09;
+
+  --ink: #f5f2ea;
+  --ink-soft: #b5aea3;
+  --ink-faint: #8a8378; /* 4,98:1 sobre el papel oscuro */
+
+  --blue-ink: #3fb9ea; /* 8,31:1 */
+  --red-ink: #f2564c; /* 5,53:1 */
+
+  color-scheme: dark;
+}
+
+/* Los tokens de tema se exponen como colores de Tailwind. */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-blue-ink: var(--blue-ink);
+  --color-red-ink: var(--red-ink);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 400; /* Anton tiene un solo grosor, y le sobra */
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Foco visible: recuadro grueso, coherente con los filetes del sistema. */
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 0;
+  }
+
+  ::selection {
+    background-color: #ffc61e;
+    color: #141210;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Los campos heredan la tipografía del sitio, nunca la del sistema. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /*
+   * `fieldset` trae de fábrica `min-width: min-content`, una rareza histórica
+   * que le impide encogerse por debajo de su contenido. Consecuencia: cualquier
+   * carril con `overflow-x` dentro de un fieldset deja de desplazarse y se
+   * ensancha, desbordando el formulario. Con esto vuelve a comportarse como un
+   * bloque normal.
+   */
+  fieldset {
+    min-width: 0;
+  }
+}
+
+/* ==========================================================================
+   UTILIDADES
+   ========================================================================== */
+
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 90rem; /* 1440px */
+  padding-inline: clamp(1.125rem, 4.5vw, 3.5rem);
+}
+
+/* Titular de cartel: Anton, apretado y en mayúsculas. */
+@utility display-poster {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  line-height: 0.86;
+  letter-spacing: -0.005em;
+}
+
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* --- Filete negro: viene directamente del contorno del rótulo ----------- */
+@utility keyline {
+  border: 2px solid var(--ink);
+}
+
+@utility keyline-t {
+  border-top: 2px solid var(--ink);
+}
+
+@utility keyline-b {
+  border-bottom: 2px solid var(--ink);
+}
+
+/*
+ * SOMBRA DURA — sin difuminado, desplazada en bloque.
+ * Imita el desajuste de registro de la serigrafía: es lo que hace que las
+ * piezas parezcan impresas y pegadas, no tarjetas de interfaz.
+ */
+@utility shadow-hard {
+  box-shadow: 5px 5px 0 0 var(--ink);
+}
+
+@utility shadow-hard-lg {
+  box-shadow: 8px 8px 0 0 var(--ink);
+}
+
+@utility shadow-hard-blue {
+  box-shadow: 5px 5px 0 0 #1b9fd8;
+}
+
+@utility shadow-hard-yellow {
+  box-shadow: 5px 5px 0 0 #ffc61e;
+}
+
+@utility shadow-hard-red {
+  box-shadow: 5px 5px 0 0 #e4342b;
+}
+
+/*
+ * TRAMA DE PUNTOS — la textura de la impresión barata, con un degradado
+ * repetido. Sin imágenes y sin peticiones.
+ */
+@utility halftone {
+  background-image: radial-gradient(var(--ink) 1px, transparent 1.35px);
+  background-size: 7px 7px;
+}
+
+@utility halftone-loose {
+  background-image: radial-gradient(var(--ink) 1px, transparent 1.6px);
+  background-size: 11px 11px;
+}
+
+/* Cinta diagonal, para bandas y remates de sección. */
+@utility tape {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--ink) 0 6px,
+    transparent 6px 14px
+  );
+}
+
+/* Texto con contorno, para la numeración grande de las secciones. */
+@utility text-outline {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--ink);
+}
+
+/* Carril de desplazamiento sin barra visible. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   MARQUESINA
+   Cinta de texto en bucle. El contenido se duplica en el marcado y se desplaza
+   exactamente la mitad, de modo que el bucle no salta.
+   ========================================================================== */
+
+@keyframes marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll var(--marquee-duration, 30s) linear infinite;
+}
+
+/* ==========================================================================
+   MOVIMIENTO REDUCIDO
+   Se neutraliza de una vez todo lo que no es esencial.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   APARICIONES AL DESPLAZAR
+   ==========================================================================
+
+   Se resuelven con animaciones ligadas al scroll (`animation-timeline: view()`),
+   sin JavaScript ni observadores.
+
+   La clave está en el `@supports`: el estado inicial oculto SOLO se aplica
+   donde el navegador sabe animar por scroll. Donde no —Firefox hoy, un
+   navegador viejo, un rastreador que no ejecuta bien el observador— no se
+   aplica nada y el contenido aparece visible desde el principio.
+
+   Esa es justo la garantía que no da el enfoque habitual con
+   IntersectionObserver: allí, si el observador no llega a disparar, el texto se
+   queda invisible para siempre. Aquí lo peor que puede pasar es que no haya
+   animación.
+   ========================================================================== */
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--reveal-y, 22px), 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      /*
+       * El recorrido se mide sobre la ENTRADA del elemento en pantalla. El
+       * desfase opcional escalona a los hermanos sin usar `animation-delay`,
+       * que con una línea de tiempo de scroll no se comporta como uno espera.
+       */
+      animation-range: entry calc(2% + var(--reveal-offset, 0%)) entry
+        calc(46% + var(--reveal-offset, 0%));
+    }
+  }
+}
+
+/* ==========================================================================
+   ENTRADAS DE PANELES
+   Dos transiciones no justifican una librería de animación entera, así que se
+   resuelven aquí. La salida es instantánea a propósito: al cerrar un menú se
+   quiere el contenido de debajo cuanto antes, no medio segundo de despedida.
+   ========================================================================== */
+
+@keyframes panel-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-item-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-14px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.panel-in {
+  animation: panel-fade-in 0.24s ease-out both;
+}
+
+.panel-item-in {
+  animation: panel-item-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--item-delay, 0s);
+}
+
+/* La barra de reserva vive siempre en el DOM y entra deslizándose. */
+.dock {
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease-out;
+}
+
+.dock[data-visible="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dock-bottom[data-visible="false"] {
+  transform: translate3d(0, 100%, 0);
+}
+
+.dock-corner[data-visible="false"] {
+  transform: translate3d(0, 14px, 0);
+}

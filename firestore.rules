@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Reglas de Firestore para El Chamo Barber Shop.
+//
+// La agenda se gestiona ENTERAMENTE desde el servidor de Next.js con el SDK de
+// administrador, que se salta estas reglas por diseño. Por tanto, aquí se
+// deniega todo: ningún navegador puede leer ni escribir la colección de citas.
+//
+// Esto es lo que evita que cualquiera se descargue la agenda completa con los
+// nombres y teléfonos de los clientes, o que cree citas falsas en bucle.
+//
+// Publicar con:  firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
